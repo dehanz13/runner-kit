@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "workspace_root": "..",
+  "settings": {
+    "frontend_scope": {
+      "schema_version": 1,
+      "tests_ignore_prefixes": [],
+      "code_extensions": [".ts", ".tsx", ".mts", ".js", ".jsx", ".mjs", ".cjs", ".css", ".json", ".vue", ".svelte", ".astro", ".mdx"],
+      "code_prefixes": ["src/", "public/"],
+      "workflow_prefixes": [".github/"]
+    },
+    "pilot_control": {
+      "instance": "rk-pilot", "lima_executable": "/usr/local/bin/limactl",
+      "lease_seconds": 900, "command_timeout_seconds": 45
+    },
+    "pilot_vm": {
+      "vm_type": "vz", "arch": "x86_64", "cpus": 2, "memory_mib": 2048, "disk_gib": 12,
+      "image_url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260716/ubuntu-24.04-minimal-cloudimg-amd64.img",
+      "image_digest": "sha256:d99d1abe3284e568161b3b7dabfbd6cf67956a7f4274b13842f10aa9c7807a2c"
+    },
+    "runner": {"max_jobs": 1, "vcpus": 4, "memory_mib": 12288, "timeout_minutes": 45},
+    "dashboard": {"port": 8788, "poll_seconds": 30},
+    "archive": {"monthly_cloud_budget_usd": 4, "large_artifact_retention_days": 30},
+    "paths": {"state": "${workspace}/.state", "archive": "${workspace}/.archive"}
+  },
+  "components": {
+    "frontend-config": {
+      "trust": "trusted-service", "settings": ["frontend_scope"], "environment": {}, "secret_environment": {}
+    },
+    "pilot-controller": {
+      "trust": "trusted-service", "settings": ["pilot_control", "paths"], "environment": {}, "secret_environment": {}
+    },
+    "vm-pilot": {
+      "trust": "trusted-service", "settings": ["pilot_vm"], "environment": {}, "secret_environment": {}
+    },
+    "runner-supervisor": {
+      "trust": "trusted-service",
+      "settings": ["runner", "paths"],
+      "environment": {"RK_MAX_JOBS": "runner.max_jobs", "RK_STATE_DIRECTORY": "paths.state"},
+      "secret_environment": {"GITHUB_APP_PRIVATE_KEY": "github_app_private_key"}
+    },
+    "ci-worker": {
+      "trust": "isolated-job",
+      "settings": ["runner"],
+      "environment": {"RK_VCPUS": "runner.vcpus", "RK_MEMORY_MIB": "runner.memory_mib", "RK_TIMEOUT_MINUTES": "runner.timeout_minutes"},
+      "secret_environment": {}
+    },
+    "dashboard-reader": {
+      "trust": "trusted-service",
+      "settings": ["dashboard"],
+      "environment": {"PORT": "dashboard.port", "POLL_SECONDS": "dashboard.poll_seconds"},
+      "secret_environment": {"GH_TOKEN": "github_readonly_token"}
+    },
+    "archive-worker": {
+      "trust": "trusted-service",
+      "settings": ["archive", "paths"],
+      "environment": {"ARCHIVE_DIRECTORY": "paths.archive", "CLOUD_BUDGET_USD": "archive.monthly_cloud_budget_usd"},
+      "secret_environment": {"KNOWLEDGE_API_TOKEN": "knowledge_ingest_token"}
+    }
+  },
+  "secrets": {
+    "provider": "local",
+    "values": {"github_app_private_key": "", "github_readonly_token": "", "knowledge_ingest_token": ""}
+  }
+}

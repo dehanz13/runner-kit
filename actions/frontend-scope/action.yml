@@ -1,0 +1,36 @@
+name: Frontend change scope
+description: Select checks conservatively using a reviewed non-secret customer policy.
+inputs:
+  config:
+    description: Repository-relative path to the non-secret scope JSON.
+    required: true
+  event-name:
+    description: Workflow event; only pull_request may narrow checks.
+    default: ${{ github.event_name }}
+  base-sha:
+    description: Full pull-request base commit SHA.
+    default: ${{ github.event.pull_request.base.sha }}
+outputs:
+  tests:
+    description: Run unit tests and coverage.
+    value: ${{ steps.scope.outputs.tests }}
+  code:
+    description: Run lint, type checks, build, and configured component checks.
+    value: ${{ steps.scope.outputs.code }}
+  workflows:
+    description: Run workflow validation.
+    value: ${{ steps.scope.outputs.workflows }}
+  reason:
+    description: Fixed identifier explaining the decision.
+    value: ${{ steps.scope.outputs.reason }}
+runs:
+  using: composite
+  steps:
+    - id: scope
+      shell: bash
+      env:
+        SCOPE_CONFIG: ${{ inputs.config }}
+        SCOPE_EVENT_NAME: ${{ inputs.event-name }}
+        SCOPE_BASE_SHA: ${{ inputs.base-sha }}
+        SCOPE_ACTION_PATH: ${{ github.action_path }}
+      run: node "$SCOPE_ACTION_PATH/scope.mjs" "$SCOPE_CONFIG"

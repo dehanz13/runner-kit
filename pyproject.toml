@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "runner-kit"
+version = "0.1.0"
+description = "Small configuration and lifecycle tools for selective CI offloading"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.urls]
+Repository = "https://github.com/dehanz13/runner-kit"
+Issues = "https://github.com/dehanz13/runner-kit/issues"
+
+[project.scripts]
+runner-kit = "runner_kit.cli:main"
+
+[tool.setuptools]
+packages = ["runner_kit"]
+include-package-data = false
+
+[tool.setuptools.package-data]
+runner_kit = ["defaults.json"]

@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check Python syntax and behavior
+        run: |
+          python -m compileall -q runner_kit tests
+          python -m unittest discover -s tests -v
+      - name: Build and install the wheel
+        run: |
+          python -m pip wheel --no-deps --wheel-dir "$RUNNER_TEMP/runner-kit-wheels" .
+          python -m pip install --no-index --no-deps "$RUNNER_TEMP"/runner-kit-wheels/*.whl
+      - name: Exercise installed CLI and packaged defaults
+        # An import in the checkout could conceal a missing package or data file.
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -I - <<'PY'
+          import json
+          import subprocess
+          import tempfile
+          from pathlib import Path
+          from importlib.metadata import version
+          from runner_kit import Configuration, initialize
+
+          with tempfile.TemporaryDirectory(prefix="runner-kit-install-") as directory:
+              root = Path(directory).resolve()
+              config = root / ".local" / "config.json"
+              initialize(config, root)
+              Configuration.load(config)
+              result = subprocess.run(
+                  ["runner-kit", "--config", str(config), "check"],
+                  check=True, capture_output=True, text=True, timeout=10,
+              )
+              assert json.loads(result.stdout)["ok"] is True
+          print("Installed runner-kit", version("runner-kit"))
+          PY
+
+  frontend-scope:
+    name: Frontend scope and workflow syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript syntax and scope behavior
+        run: |
+          node --check actions/frontend-scope/scope.mjs
+          node --check actions/frontend-scope/scope.test.mjs
+          node --test actions/frontend-scope/scope.test.mjs
+      - name: Lint workflow syntax
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${tarball}" \
+            --output "$RUNNER_TEMP/$tarball"
+          echo "${ACTIONLINT_SHA256}  ${RUNNER_TEMP}/${tarball}" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color .github/workflows/ci.yml

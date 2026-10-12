@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+
+- Record Hearso's frontend CI as the one known internal consumer, with all five vendored files matching the pinned v0.1.0 source revision as of October 12, 2026.
+- Distinguish verified file identity from unconfirmed independent review provenance, and retain the unmeasured cost-savings limitation and GitHub-hosted runner boundary.
+
 ## 0.1.0
 
 First public release of the toolkit building blocks. GitHub-hosted CI remains the default execution environment.

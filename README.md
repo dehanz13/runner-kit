@@ -36,6 +36,14 @@ Python 3.11+ is required; the frontend action requires Node 22 and Git. GitHub c
 - [Frontend change-scope action and customer configuration](actions/frontend-scope/README.md)
 - [RunsOn provider evaluation](docs/providers/runs-on.md)
 
+## Used by
+
+Hearso's frontend CI is the one known consumer. Its checked-in workflow invokes `./.github/actions/frontend-scope` with a non-secret repository policy. The action selects unit tests, code checks and workflow validation from changed paths on pull requests; other events and uncertain comparisons select all three. Hearso owns its check commands, required statuses and runner selection.
+
+The vendored bundle's `UPSTREAM.json` pins Runner Kit revision `20f6123498e27f717b27a44573fecfee8a5243ac` from v0.1.0. On October 12, 2026, all five bundled files matched that revision and their recorded SHA-256 hashes. This verifies the source pin and file identity; independent review provenance remains to be confirmed. Hearso's current product users are the founder and local agents; this records an internal consumer, with no broader adoption claim.
+
+Runner Kit's effect on hosted runner minutes and cost is **not yet measured**. Hearso's workflow still uses GitHub-hosted `ubuntu-latest` runners. Check selection preserves the existing scope policy; it does not move jobs to another runner host.
+
 ## Planned capabilities
 
 Generic Linux VM recipes; Node/browser and Rust profiles; disposable service tests; runner lifecycle supervision; benchmark reports in Excalidraw, HTML and raw data; optional workflow dashboard. These are separate increments with their own validation before activation.
